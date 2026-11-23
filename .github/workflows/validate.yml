@@ -1,0 +1,35 @@
+name: Validate public distribution contract
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065
+        with:
+          python-version: "3.12"
+      - name: Check manifest schema and prohibit data in git history inputs
+        shell: python
+        run: |
+          import json
+          import subprocess
+          from pathlib import Path
+
+          schema = json.loads(Path("schema/public-manifest.schema.json").read_text(encoding="utf-8"))
+          assert schema["properties"]["max_lookback"]["minimum"] == 1
+          assert schema["properties"]["max_lookback"]["maximum"] == 3
+          assert schema["properties"]["entitlement_scope"]["const"] == "public_sample"
+          assert schema["properties"]["e_stat_candidates_approved"]["const"] is False
+          tracked = subprocess.check_output(["git", "ls-files"], text=True).splitlines()
+          forbidden = [p for p in tracked if p.startswith(("data/", "latest/", "releases/"))]
+          assert not forbidden, f"data files must be Release assets, not Git files: {forbidden}"
+          print("PUBLIC_DISTRIBUTION_CONTRACT_PASS")
