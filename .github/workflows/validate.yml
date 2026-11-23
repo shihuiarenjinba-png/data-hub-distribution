@@ -25,7 +25,8 @@ jobs:
           from pathlib import Path
 
           schema = json.loads(Path("schema/public-manifest.schema.json").read_text(encoding="utf-8"))
-          assert schema["properties"]["max_lookback"]["const"] == 3
+          assert schema["properties"]["max_lookback"]["minimum"] == 1
+          assert schema["properties"]["max_lookback"]["maximum"] == 3
           assert schema["properties"]["entitlement_scope"]["const"] == "public_sample"
           assert schema["properties"]["e_stat_candidates_approved"]["const"] is False
           tracked = subprocess.check_output(["git", "ls-files"], text=True).splitlines()
